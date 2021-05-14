@@ -1,0 +1,14 @@
+import tensorflow as tf
+from tensorflow import keras
+import numpy as np
+import pandas as pd
+import matplotlib as plt
+from sklearn import preprocessing
+
+df = pd.read_csv(r"C:\Users\Harry Parker\Documents\GitHub\TensorFlow-Pokemon-Course\pokemon_alopez247.csv")
+col = df.columns
+print(col)
+
+df = df[['isLegendary','Generation', 'Type_1', 'Type_2', 'HP', 'Attack', 'Defense', 'Sp_Atk', 'Sp_Def', 'Speed','Color','Egg_Group_1','Height_m','Weight_kg','Body_Style']]
+
+print(df)

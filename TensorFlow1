@@ -7,8 +7,101 @@ from sklearn import preprocessing
 
 df = pd.read_csv(r"C:\Users\Harry Parker\Documents\GitHub\TensorFlow-Pokemon-Course\pokemon_alopez247.csv")
 col = df.columns
-print(col)
-
 df = df[['isLegendary','Generation', 'Type_1', 'Type_2', 'HP', 'Attack', 'Defense', 'Sp_Atk', 'Sp_Def', 'Speed','Color','Egg_Group_1','Height_m','Weight_kg','Body_Style']]
 
-print(df)
+# Coverting the values of 0 and 1 into intergers
+df['isLegendary'] = df['isLegendary'].astype(int)
+
+# With type1, we do not want to change the words to numbers eg: water=1, fire=2, earth=3...
+#This would imply fire is closer to water then earth
+
+#Create a dummy variable, pokemon = 1 if water, 0 otherwise, do this for all elements seperatly
+# pd.get_dummies is a panda function to create dummies
+def dummy_creation(df, dummy_catagories):
+    for i in dummy_catagories:
+        df_dummy = pd.get_dummies(df[i])
+        df = pd.concat([df, df_dummy], axis=1)
+        df = df.drop(i,axis=1)
+    return(df)
+
+df = dummy_creation(df, ['Egg_Group_1', 'Body_Style', 'Color', 'Type_1', 'Type_2'])
+
+# Split the data 70% training, 30% validation
+# We will split by first generation pokemon for testing and the rest is considered training data
+
+def train_test_splitter(DataFrame, column):
+    df_train = DataFrame.loc[df[column] != 1]
+    df_test = DataFrame.loc[df[column] == 1]
+
+    df_train.drop(column, axis=1)
+    df_test.drop(column, axis=1)
+
+    return(df_train, df_test)
+
+df_train, df_test = train_test_splitter(df, 'Generation')
+
+def label_delineator(df_train, df_test, label):
+    train_data = df_train.drop(label, axis=1)
+    train_labels = df_train[label].values
+    test_data = df_train.drop(label, axis=1)
+    test_labels = df_train[label].values
+    return(train_data, train_labels, test_data, test_labels)
+
+train_data, train_labels, test_data, test_labels = label_delineator(df_train, df_test, 'isLegendary')
+
+
+# Here we are normalizing the data sets
+def data_normalizer(train_data, test_data):
+    train_data = preprocessing.MinMaxScaler().fit_transform(train_data)
+    test_data = preprocessing.MinMaxScaler().fit_transform(test_data)
+    return(train_data, test_data)
+
+train_data, test_data = data_normalizer(train_data, test_data)
+
+# Now we begin the Machine Learning!
+#We use Keras - this is an API for TensorFlow
+
+# We are adding two fully connected layers
+
+# First layer we use the ReLU  -  specify the input size
+# Second layer we use softmax layer - this is a logisitc regression done for the situation with multiple cases.
+# We delineate the possible identites
+
+length = train_data.shape[1]
+
+model = keras.Sequential()
+model.add(keras.layers.Dense(500, activation = 'relu', input_shape = [length,]))
+model.add(keras.layers.Dense(2, activation='softmax'))
+
+# Here we compile the model, we need to do compile then fit the data
+model.compile(optimizer='sgd', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+# Here we feed three parameters to model compile
+# Choose optimiser
+# We are using stochastic gradient decent
+
+model.fit(train_data, train_labels, epochs=400)
+# epoch counts as iterating over the model once
+
+# Now model is trained, we can test it against the test data
+loss_value, accuracy_value = model.evaluate(test_data, test_labels)
+print(f'Our test was {accuracy_value})' )
+
+# Now we have the model to 98% accuracy, we can use this to predict a certain Pokemon
+#def predictor(test_data, test_labels, index):
+#    prediction = model.predict(test_data)
+#    if np.argmax(prediction[index]) == test_labels[index]:
+#        print(f'This was correctly predicted to be a \"{test_labels[index]}\"!')
+#    else:
+#        print(f'This was incorrectly predicted to be a \"{np.argmax(prediction[index])}\". It was actually a \"{test_labels[index]}\".')
+#        return(prediction)
+
+def predictor(test_data, test_labels, index):
+    prediction = model.predict(test_data)
+    if np.argmax(prediction[index]) == test_labels[index]:
+        print(f'This was correctly predicted to be a \"{test_labels[index]}\"!')
+    else:
+        print(f'This was incorrectly predicted to be a \"{np.argmax(prediction[index])}\". It was actually a \"{test_labels[index]}\".')
+        return(prediction)
+
+
+print(predictor(test_data, test_labels, 145))
